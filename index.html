@@ -2,26 +2,45 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>シフト表</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<title>シフト表（月曜はじまり・月〜土）</title>
 
 <style>
-body { font-family: sans-serif; padding: 10px; }
-table { border-collapse: collapse; width: 100%; background:#fff; }
-th, td { border: 1px solid #999; padding: 6px; text-align: center; }
-th { background: #f0f0f0; }
-td { cursor: pointer; }
-button { margin: 5px 5px 5px 0; }
-#wrap { background:#fff; padding:10px; }
+body {
+  font-family: sans-serif;
+  padding: 10px;
+}
 
-/* ===== 印刷用 ===== */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid #333;
+  padding: 6px;
+  text-align: center;
+}
+
+th {
+  background: #eee;
+}
+
+input {
+  width: 90%;
+  text-align: center;
+}
+
+button {
+  margin: 5px;
+  padding: 6px 10px;
+}
+
+/* 印刷用 */
 @media print {
-  body { margin: 0; padding: 0; }
-  h2, button { display: none; }
-  table { width: 100%; font-size: 11pt; }
-  th, td { padding: 6px; }
+  button, h2 {
+    display: none;
+  }
+
   @page {
     size: A4 landscape;
     margin: 10mm;
@@ -34,68 +53,54 @@ button { margin: 5px 5px 5px 0; }
 
 <h2>シフト表（月曜はじまり・月〜土）</h2>
 
-<button onclick="prevWeek()">◀ 前週</button>
-<button onclick="nextWeek()">次週 ▶</button>
-<button onclick="addStaff()">＋スタッフ追加</button>
-<button onclick="makeImage()">📸 画像にする → LINE</button>
-<button onclick="printA4()">🖨 A4印刷</button>
-
-<div id="wrap">
-  <div id="table"></div>
+<div>
+  <button onclick="prevWeek()">◀ 前週</button>
+  <button onclick="nextWeek()">次週 ▶</button>
+  <button onclick="addStaff()">＋ スタッフ追加</button>
+  <button onclick="printA4()">🖨 A4印刷</button>
 </div>
 
+<br>
+
+<table id="shiftTable"></table>
+
 <script>
-/* ===== データ ===== */
-let staff = ["Aさん", "Bさん"];
+let staff = ["田中", "佐藤"];
 let shifts = {};
 let weekStart = getMonday(new Date());
 
-/* ===== 日付 ===== */
-function getMonday(d) {
-  d = new Date(d);
-  const day = d.getDay() || 7;
-  if (day !== 1) d.setDate(d.getDate() - (day - 1));
-  d.setHours(0,0,0,0);
-  return d;
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
 }
-function format(d) {
+
+function formatDate(d) {
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
 
-/* ===== 表描画 ===== */
 function render() {
+  const table = document.getElementById("shiftTable");
+  table.innerHTML = "";
+
   const days = ["月","火","水","木","金","土"];
-  let html = "<table><tr><th>名前</th>";
+  const dates = [];
 
-  for (let i=0;i<6;i++) {
+  for (let i = 0; i < 6; i++) {
     const d = new Date(weekStart);
-    d.setDate(d.getDate()+i);
-    html += `<th>${days[i]}<br>${format(d)}</th>`;
+    d.setDate(d.getDate() + i);
+    dates.push(d);
   }
-  html += "</tr>";
 
-  staff.forEach((name, i) => {
-    html += `<tr><th ondblclick="rename(${i})">${name}</th>`;
-    for (let j=0;j<6;j++) {
-      const key = `${name}_${j}`;
-      html += `<td onclick="toggle('${key}')" ondblclick="manual('${key}')">
-        ${shifts[key] || ""}
-      </td>`;
-    }
-    html += "</tr>";
-  });
+  const header = document.createElement("tr");
+  header.innerHTML = "<th>名前</th>" + dates.map((d,i)=>`<th>${days[i]}<br>${formatDate(d)}</th>`).join("");
+  table.appendChild(header);
 
-  html += "</table>";
-  document.getElementById("table").innerHTML = html;
-}
-
-/* ===== 操作 ===== */
-function toggle(key) {
-  const list = ["", "9:00-", "16:00-", "〇"];
-  const i = list.indexOf(shifts[key] || "");
-  shifts[key] = list[(i+1)%list.length];
-  render();
-}
-function manual(key) {
-  const v = prompt("時間を入力", shifts[key] || "");
-  if (v !== null) shifts
+  staff.forEach(name => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td contenteditable="true">${name}</td>` +
+      dates.map(d => {
+        const key = name + d.toDateString();
+        if (!shifts[key]) shifts[key] = "";
+        return `<td><input value="${shifts[key]}" oninput="
