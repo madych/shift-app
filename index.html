@@ -2,29 +2,61 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>シフト表テスト</title>
+<title>シフト表（月〜土）</title>
+
 <style>
+body {
+  font-family: sans-serif;
+  padding: 10px;
+}
+
+button {
+  margin-bottom: 10px;
+  padding: 6px 12px;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
 }
+
 th, td {
   border: 1px solid #000;
-  padding: 8px;
+  padding: 6px;
   text-align: center;
+}
+
+th {
+  background: #eee;
+}
+
+input {
+  width: 90%;
+  text-align: center;
+  border: none;
+}
+
+/* A4印刷用 */
+@media print {
+  button {
+    display: none;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
 }
 </style>
 </head>
+
 <body>
 
-<h2>表表示テスト</h2>
+<h2>シフト表（月〜土）</h2>
 
-<table id="shiftTable"></table>
+<button onclick="window.print()">🖨 A4印刷</button>
 
-<script>
-const table = document.getElementById("shiftTable");
-
-table.innerHTML = `
+<table>
   <tr>
     <th>名前</th>
     <th>月</th>
@@ -34,26 +66,27 @@ table.innerHTML = `
     <th>金</th>
     <th>土</th>
   </tr>
+
   <tr>
-    <td>田中</td>
-    <td>〇</td>
-    <td>〇</td>
-    <td></td>
-    <td>〇</td>
-    <td></td>
-    <td>〇</td>
+    <td contenteditable="true">田中</td>
+    <td><input value="〇"></td>
+    <td><input value="〇"></td>
+    <td><input></td>
+    <td><input value="〇"></td>
+    <td><input></td>
+    <td><input value="〇"></td>
   </tr>
+
   <tr>
-    <td>佐藤</td>
-    <td></td>
-    <td>〇</td>
-    <td>〇</td>
-    <td></td>
-    <td>〇</td>
-    <td></td>
+    <td contenteditable="true">佐藤</td>
+    <td><input></td>
+    <td><input value="〇"></td>
+    <td><input value="〇"></td>
+    <td><input></td>
+    <td><input value="〇"></td>
+    <td><input></td>
   </tr>
-`;
-</script>
+</table>
 
 </body>
 </html>
