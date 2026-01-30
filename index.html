@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>シフト表（月〜土）</title>
+<title>シフト表（月曜はじまり・月〜土）</title>
 
 <style>
 body {
@@ -10,9 +10,13 @@ body {
   padding: 10px;
 }
 
+h2 {
+  margin-bottom: 8px;
+}
+
 button {
-  margin-bottom: 10px;
-  padding: 6px 12px;
+  margin: 4px 4px 8px 0;
+  padding: 6px 10px;
 }
 
 table {
@@ -34,14 +38,14 @@ input {
   width: 90%;
   text-align: center;
   border: none;
+  font-size: 14px;
 }
 
-/* A4印刷用 */
+/* 印刷 */
 @media print {
   button {
     display: none;
   }
-
   @page {
     size: A4 landscape;
     margin: 10mm;
@@ -52,41 +56,41 @@ input {
 
 <body>
 
-<h2>シフト表（月〜土）</h2>
+<h2 id="weekTitle">シフト表</h2>
 
-<button onclick="window.print()">🖨 A4印刷</button>
+<div>
+  <button onclick="prevWeek()">◀ 前週</button>
+  <button onclick="nextWeek()">次週 ▶</button>
+  <button onclick="addStaff()">＋ スタッフ追加</button>
+  <button onclick="printA4()">🖨 A4印刷</button>
+  <button onclick="saveImage()">📸 画像にする</button>
+</div>
 
-<table>
-  <tr>
-    <th>名前</th>
-    <th>月</th>
-    <th>火</th>
-    <th>水</th>
-    <th>木</th>
-    <th>金</th>
-    <th>土</th>
-  </tr>
+<table id="shiftTable"></table>
 
-  <tr>
-    <td contenteditable="true">田中</td>
-    <td><input value="〇"></td>
-    <td><input value="〇"></td>
-    <td><input></td>
-    <td><input value="〇"></td>
-    <td><input></td>
-    <td><input value="〇"></td>
-  </tr>
+<!-- html2canvas（画像化用） -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <tr>
-    <td contenteditable="true">佐藤</td>
-    <td><input></td>
-    <td><input value="〇"></td>
-    <td><input value="〇"></td>
-    <td><input></td>
-    <td><input value="〇"></td>
-    <td><input></td>
-  </tr>
-</table>
+<script>
+let staff = ["田中", "佐藤"];
+let shifts = {};
+let weekStart = getMonday(new Date());
 
-</body>
-</html>
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function formatDate(d) {
+  return (d.getMonth()+1) + "/" + d.getDate();
+}
+
+function render() {
+  const table = document.getElementById("shiftTable");
+  table.innerHTML = "";
+
+  const day
