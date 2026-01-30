@@ -10,8 +10,36 @@ body { font-family: sans-serif; padding: 10px; }
 table { border-collapse: collapse; width: 100%; margin-top: 10px; }
 th, td { border: 1px solid #999; padding: 6px; text-align: center; }
 th { background: #eee; }
-input { width: 100%; box-sizing: border-box; text-align: center; }
+
+.name-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 14px;
+  outline: none;
+}
+
+.shift-cell {
+  cursor: pointer;
+  min-height: 28px;
+  user-select: none;
+}
+.shift-cell:hover { background: #f0f8ff; }
+
+/* 👇 変な枠（青枠・点線）を完全に消す */
+.shift-cell:focus,
+.shift-cell:active,
+td {
+  outline: none;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent; /* スマホの青枠消す */
+}
+
 button { margin: 4px 2px; padding: 6px 10px; }
+
 @media print {
   button { display: none; }
 }
@@ -57,12 +85,15 @@ function render() {
   html += "</tr>";
 
   staff.forEach(name => {
-    html += `<tr><td><input value="${name}" onchange="renameStaff('${name}',this.value)"></td>`;
+    html += `<tr><td>
+      <input class="name-input" value="${name}"
+        onchange="renameStaff('${name}',this.value)">
+    </td>`;
+
     for (let i=0;i<6;i++) {
       const key = name + "-" + i;
-      html += `<td>
-        <input value="${shifts[key]||""}" 
-               onclick="toggle(this,'${key}')">
+      html += `<td class="shift-cell" onclick="setShift('${key}')">
+        ${shifts[key] || ""}
       </td>`;
     }
     html += "</tr>";
@@ -72,33 +103,5 @@ function render() {
   document.getElementById("table").innerHTML = html;
 }
 
-function toggle(el,key){
-  el.value = el.value === "〇" ? "" : "〇";
-  shifts[key] = el.value;
-}
-
-function addStaff(){
-  staff.push("新規");
-  render();
-}
-
-function renameStaff(oldName,newName){
-  staff = staff.map(n => n===oldName ? newName : n);
-  render();
-}
-
-function prevWeek(){
-  weekStart.setDate(weekStart.getDate()-7);
-  render();
-}
-
-function nextWeek(){
-  weekStart.setDate(weekStart.getDate()+7);
-  render();
-}
-
-render();
-</script>
-
-</body>
-</html>
+function setShift(key) {
+  const choice = prompt(
