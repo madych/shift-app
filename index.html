@@ -2,106 +2,32 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>シフト表（月曜はじまり・月〜土）</title>
+<title>シフト表テスト</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body { font-family: sans-serif; padding: 10px; }
-table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-th, td { border: 1px solid #999; padding: 6px; text-align: center; }
-th { background: #eee; }
-
-.name-input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  text-align: center;
-  font-size: 14px;
-  outline: none;
-}
-
-.shift-cell {
-  cursor: pointer;
-  min-height: 28px;
-  user-select: none;
-}
-.shift-cell:hover { background: #f0f8ff; }
-
-/* 👇 変な枠（青枠・点線）を完全に消す */
-.shift-cell:focus,
-.shift-cell:active,
-td {
-  outline: none;
-}
-
-* {
-  -webkit-tap-highlight-color: transparent; /* スマホの青枠消す */
-}
-
-button { margin: 4px 2px; padding: 6px 10px; }
-
-@media print {
-  button { display: none; }
-}
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #000; padding: 6px; text-align: center; }
 </style>
 </head>
 
 <body>
 
-<h2>シフト表（月曜はじまり・月〜土）</h2>
+<h2>表表示テスト</h2>
 
-<button onclick="prevWeek()">◀ 前週</button>
-<button onclick="nextWeek()">次週 ▶</button>
-<button onclick="addStaff()">＋スタッフ追加</button>
-<button onclick="print()">🖨 A4印刷</button>
+<table>
+  <tr>
+    <th>名前</th>
+    <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
+  </tr>
+  <tr>
+    <td>田中</td>
+    <td>〇</td><td>9:00-</td><td></td><td>17:00-</td><td></td><td>〇</td>
+  </tr>
+  <tr>
+    <td>佐藤</td>
+    <td></td><td>〇</td><td>19:00-</td><td></td><td>〇</td><td></td>
+  </tr>
+</table>
 
-<div id="table"></div>
-
-<script>
-let staff = ["田中", "佐藤"];
-let shifts = {};
-let weekStart = getMonday(new Date());
-
-function getMonday(d) {
-  d = new Date(d);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0,0,0,0);
-  return d;
-}
-
-function formatDate(d) {
-  return `${d.getMonth()+1}/${d.getDate()}`;
-}
-
-function render() {
-  let html = "<table><tr><th>名前</th>";
-  for (let i=0;i<6;i++) {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate()+i);
-    html += `<th>${["月","火","水","木","金","土"][i]}<br>${formatDate(d)}</th>`;
-  }
-  html += "</tr>";
-
-  staff.forEach(name => {
-    html += `<tr><td>
-      <input class="name-input" value="${name}"
-        onchange="renameStaff('${name}',this.value)">
-    </td>`;
-
-    for (let i=0;i<6;i++) {
-      const key = name + "-" + i;
-      html += `<td class="shift-cell" onclick="setShift('${key}')">
-        ${shifts[key] || ""}
-      </td>`;
-    }
-    html += "</tr>";
-  });
-
-  html += "</table>";
-  document.getElementById("table").innerHTML = html;
-}
-
-function setShift(key) {
-  const choice = prompt(
+</body>
+</html>
