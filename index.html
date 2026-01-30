@@ -1,6 +1,120 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>シフト表（月曜はじまり・月〜土）</title>
+
+<style>
+body {
+  font-family: sans-serif;
+  padding: 10px;
+}
+
+h2 {
+  margin-bottom: 10px;
+}
+
+button {
+  margin: 4px;
+  padding: 6px 10px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #333;
+  padding: 6px;
+  text-align: center;
+}
+
+th {
+  background: #eee;
+}
+
+input {
+  width: 90%;
+  text-align: center;
+  border: none;
+}
+
+/* A4印刷 */
+@media print {
+  button {
+    display: none;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+}
+</style>
+</head>
+
 <body>
-<h1>表示テスト</h1>
-</body>
-</html>
+
+<h2>シフト表（月曜はじまり・月〜土）</h2>
+
+<div>
+  <button onclick="prevWeek()">◀ 前週</button>
+  <button onclick="nextWeek()">次週 ▶</button>
+  <button onclick="addStaff()">＋ スタッフ追加</button>
+  <button onclick="printA4()">🖨 A4印刷</button>
+</div>
+
+<table id="shiftTable"></table>
+
+<script>
+let staff = ["田中", "佐藤"];
+let shifts = {};
+let weekStart = getMonday(new Date());
+
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function formatDate(d) {
+  return (d.getMonth() + 1) + "/" + d.getDate();
+}
+
+function render() {
+  const table = document.getElementById("shiftTable");
+  table.innerHTML = "";
+
+  const days = ["月","火","水","木","金","土"];
+
+  // ヘッダー
+  const head = document.createElement("tr");
+  head.innerHTML = "<th>名前</th>";
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    head.innerHTML += "<th>" + days[i] + "<br>" + formatDate(d) + "</th>";
+  }
+  table.appendChild(head);
+
+  // 本体
+  staff.forEach(name => {
+    const tr = document.createElement("tr");
+
+    const nameTd = document.createElement("td");
+    nameTd.contentEditable = true;
+    nameTd.innerText = name;
+    tr.appendChild(nameTd);
+
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      const key = name + "_" + d.toDateString();
+
+      const td = document.createElement("td");
+      const input = document.createElement("i
