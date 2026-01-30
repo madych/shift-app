@@ -3,81 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <title>シフト表（月曜はじまり・月〜土）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  font-family: sans-serif;
-  padding: 10px;
-}
-
-h2 {
-  margin-bottom: 8px;
-}
-
-button {
-  margin: 4px 4px 8px 0;
-  padding: 6px 10px;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-
-th, td {
-  border: 1px solid #000;
-  padding: 6px;
-  text-align: center;
-}
-
-th {
-  background: #eee;
-}
-
-input {
-  width: 90%;
-  text-align: center;
-  border: none;
-  font-size: 14px;
-}
-
-/* 印刷 */
+body { font-family: sans-serif; padding: 10px; }
+table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+th, td { border: 1px solid #999; padding: 6px; text-align: center; }
+th { background: #eee; }
+input { width: 100%; box-sizing: border-box; text-align: center; }
+button { margin: 4px 2px; padding: 6px 10px; }
 @media print {
-  button {
-    display: none;
-  }
-  @page {
-    size: A4 landscape;
-    margin: 10mm;
-  }
+  button { display: none; }
 }
 </style>
 </head>
 
 <body>
 
-<h2 id="weekTitle">シフト表</h2>
+<h2>シフト表（月曜はじまり・月〜土）</h2>
 
-<div>
-  <button onclick="prevWeek()">◀ 前週</button>
-  <button onclick="nextWeek()">次週 ▶</button>
-  <button onclick="addStaff()">＋ スタッフ追加</button>
-  <button onclick="printA4()">🖨 A4印刷</button>
-  <button onclick="saveImage()">📸 画像にする</button>
-</div>
+<button onclick="prevWeek()">◀ 前週</button>
+<button onclick="nextWeek()">次週 ▶</button>
+<button onclick="addStaff()">＋スタッフ追加</button>
+<button onclick="print()">🖨 A4印刷</button>
 
-<table id="shiftTable"></table>
-
-<!-- html2canvas（画像化用） -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<div id="table"></div>
 
 <script>
 let staff = ["田中", "佐藤"];
 let shifts = {};
 let weekStart = getMonday(new Date());
 
-function getMonday(date) {
-  const d = new Date(date);
+function getMonday(d) {
+  d = new Date(d);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
@@ -86,11 +44,61 @@ function getMonday(date) {
 }
 
 function formatDate(d) {
-  return (d.getMonth()+1) + "/" + d.getDate();
+  return `${d.getMonth()+1}/${d.getDate()}`;
 }
 
 function render() {
-  const table = document.getElementById("shiftTable");
-  table.innerHTML = "";
+  let html = "<table><tr><th>名前</th>";
+  for (let i=0;i<6;i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate()+i);
+    html += `<th>${["月","火","水","木","金","土"][i]}<br>${formatDate(d)}</th>`;
+  }
+  html += "</tr>";
 
-  const day
+  staff.forEach(name => {
+    html += `<tr><td><input value="${name}" onchange="renameStaff('${name}',this.value)"></td>`;
+    for (let i=0;i<6;i++) {
+      const key = name + "-" + i;
+      html += `<td>
+        <input value="${shifts[key]||""}" 
+               onclick="toggle(this,'${key}')">
+      </td>`;
+    }
+    html += "</tr>";
+  });
+
+  html += "</table>";
+  document.getElementById("table").innerHTML = html;
+}
+
+function toggle(el,key){
+  el.value = el.value === "〇" ? "" : "〇";
+  shifts[key] = el.value;
+}
+
+function addStaff(){
+  staff.push("新規");
+  render();
+}
+
+function renameStaff(oldName,newName){
+  staff = staff.map(n => n===oldName ? newName : n);
+  render();
+}
+
+function prevWeek(){
+  weekStart.setDate(weekStart.getDate()-7);
+  render();
+}
+
+function nextWeek(){
+  weekStart.setDate(weekStart.getDate()+7);
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
