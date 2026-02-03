@@ -9,25 +9,28 @@
   table { border-collapse: collapse; width: 100%; }
   th, td {
     border: 1px solid #999;
-    padding: 8px;
+    padding: 6px;
     text-align: center;
     min-width: 70px;
   }
   th { background: #f0f0f0; }
 
-  /* 名前欄だけ input */
+  /* 名前欄 */
   .name-input {
     width: 95%;
     border: none;
     outline: none;
+    background: transparent;
     text-align: center;
     font-size: 14px;
-    background: transparent;
   }
 
-  /* シフト欄は直接入力 */
-  .shift-cell {
-    min-height: 28px;
+  /* シフト入力 */
+  .shift-edit {
+    min-height: 26px;
+    outline: none;
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   button { margin: 5px 5px 5px 0; }
@@ -54,17 +57,22 @@ function render() {
   html += "</tr>";
 
   staff.forEach(name => {
-    html += `<tr>`;
+    html += "<tr>";
+
+    // 名前
     html += `<td>
       <input class="name-input" value="${name}"
         onchange="renameStaff('${name}', this.value)">
     </td>`;
 
+    // シフト
     days.forEach(d => {
       const key = name + d;
       const val = shifts[key] || "";
-      html += `<td class="shift-cell" contenteditable
-        oninput="shifts['${key}']=this.innerText">${val}</td>`;
+      html += `<td>
+        <div class="shift-edit" contenteditable
+          oninput="shifts['${key}']=this.innerText">${val}</div>
+      </td>`;
     });
 
     html += "</tr>";
