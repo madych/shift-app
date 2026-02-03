@@ -1,16 +1,37 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>シフト表</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: sans-serif; padding: 10px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #999; padding: 6px; text-align: center; }
-    input { width: 90%; text-align: center; }
-    button { margin: 5px 5px 5px 0; }
-  </style>
+<meta charset="UTF-8">
+<title>シフト表</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: sans-serif; padding: 10px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td {
+    border: 1px solid #999;
+    padding: 8px;
+    text-align: center;
+    min-width: 70px;
+  }
+  th { background: #f0f0f0; }
+
+  /* 名前欄だけ input */
+  .name-input {
+    width: 95%;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 14px;
+    background: transparent;
+  }
+
+  /* シフト欄は直接入力 */
+  .shift-cell {
+    min-height: 28px;
+  }
+
+  button { margin: 5px 5px 5px 0; }
+</style>
 </head>
 
 <body>
@@ -18,7 +39,6 @@
 <h2>シフト表（月曜はじまり・月〜土）</h2>
 
 <button onclick="addStaff()">＋スタッフ追加</button>
-<button onclick="makeImage()">📸 画像にする</button>
 <button onclick="printA4()">🖨 A4印刷</button>
 
 <div id="tableArea"></div>
@@ -34,12 +54,19 @@ function render() {
   html += "</tr>";
 
   staff.forEach(name => {
-    html += `<tr><td><input value="${name}" onchange="renameStaff('${name}', this.value)"></td>`;
+    html += `<tr>`;
+    html += `<td>
+      <input class="name-input" value="${name}"
+        onchange="renameStaff('${name}', this.value)">
+    </td>`;
+
     days.forEach(d => {
       const key = name + d;
       const val = shifts[key] || "";
-      html += `<td><input value="${val}" onchange="shifts['${key}']=this.value"></td>`;
+      html += `<td class="shift-cell" contenteditable
+        oninput="shifts['${key}']=this.innerText">${val}</td>`;
     });
+
     html += "</tr>";
   });
 
@@ -63,10 +90,6 @@ function renameStaff(oldName, newName) {
   }
   shifts = newShifts;
   render();
-}
-
-function makeImage() {
-  alert("※ LINE送信用の画像化は次ステップで対応");
 }
 
 function printA4() {
