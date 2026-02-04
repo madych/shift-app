@@ -4,84 +4,54 @@
 <meta charset="UTF-8">
 <title>シフト表</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
 <style>
   body { font-family: sans-serif; padding: 10px; }
   table { border-collapse: collapse; width: 100%; }
-  th, td {
-    border: 1px solid #999;
-    padding: 6px;
-    text-align: center;
-    min-width: 70px;
-  }
+  th, td { border: 1px solid #999; padding: 6px; text-align: center; min-width: 70px; }
   th { background: #f0f0f0; }
-
-  /* 名前欄 */
-  .name-input {
-    width: 95%;
-    border: none;
-    outline: none;
-    background: transparent;
-    text-align: center;
-    font-size: 14px;
-  }
-
-  /* シフト欄 */
-  .shift-cell {
-    min-height: 28px;
-    line-height: 28px;
-    user-select: none;
-  }
-
-  .editing {
-    user-select: text;
-    outline: 1px dashed #666;
-  }
-
+  .name-input { width: 95%; border: none; outline: none; background: transparent; text-align: center; }
+  .shift-cell { min-height: 28px; line-height: 28px; user-select: none; }
+  .editing { user-select: text; outline: 1px dashed #666; }
   button { margin: 5px 5px 5px 0; }
 </style>
 </head>
 
 <body>
-
 <h2>シフト表（月曜はじまり・月〜土）</h2>
 
 <button onclick="addStaff()">＋スタッフ追加</button>
+<button onclick="save()">💾 保存</button>
+<button onclick="makeImage()">📸 画像にする → LINE</button>
 <button onclick="printA4()">🖨 A4印刷</button>
 
 <div id="tableArea"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
+/* ===== データ ===== */
 const days = ["月","火","水","木","金","土"];
 const cycleValues = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
-
 let staff = ["田中","佐藤"];
 let shifts = {};
 
+/* ===== 描画 ===== */
 function render() {
-  let html = "<table><tr><th>名前</th>";
+  let html = "<table id='shiftTable'><tr><th>名前</th>";
   days.forEach(d => html += `<th>${d}</th>`);
   html += "</tr>";
 
   staff.forEach(name => {
     html += "<tr>";
-
-    html += `<td>
-      <input class="name-input" value="${name}"
-        onchange="renameStaff('${name}', this.value)">
-    </td>`;
-
+    html += `<td><input class="name-input" value="${name}" onchange="renameStaff('${name}', this.value)"></td>`;
     days.forEach(d => {
       const key = name + d;
       const val = shifts[key] || "";
-      html += `<td>
-        <div class="shift-cell"
-          onclick="cycleShift('${key}', this)"
-          ondblclick="enableEdit('${key}', this)">
-          ${val}
-        </div>
-      </td>`;
+      html += `<td><div class="shift-cell"
+        onclick="cycleShift('${key}', this)"
+        ondblclick="enableEdit('${key}', this)">${val}</div></td>`;
     });
-
     html += "</tr>";
   });
 
@@ -89,10 +59,10 @@ function render() {
   document.getElementById("tableArea").innerHTML = html;
 }
 
+/* ===== 操作 ===== */
 function cycleShift(key, el) {
   if (el.isEditing) return;
-  const current = el.innerText.trim();
-  const idx = cycleValues.indexOf(current);
+  const idx = cycleValues.indexOf(el.innerText.trim());
   const next = cycleValues[(idx + 1) % cycleValues.length];
   el.innerText = next;
   shifts[key] = next;
@@ -103,39 +73,64 @@ function enableEdit(key, el) {
   el.contentEditable = true;
   el.classList.add("editing");
   el.focus();
-
   el.onblur = () => {
     el.contentEditable = false;
     el.classList.remove("editing");
     el.isEditing = false;
     shifts[key] = el.innerText.trim();
+    save();
   };
 }
 
 function addStaff() {
   const name = prompt("名前");
-  if (name) {
-    staff.push(name);
-    render();
-  }
+  if (name) { staff.push(name); render(); save(); }
 }
 
 function renameStaff(oldName, newName) {
   staff = staff.map(n => n === oldName ? newName : n);
   const newShifts = {};
-  for (let k in shifts) {
-    newShifts[k.replace(oldName, newName)] = shifts[k];
-  }
+  for (let k in shifts) newShifts[k.replace(oldName, newName)] = shifts[k];
   shifts = newShifts;
-  render();
+  render(); save();
 }
 
-function printA4() {
-  window.print();
+/* ===== 保存（②） ===== */
+function save() {
+  localStorage.setItem("shift_staff", JSON.stringify(staff));
+  localStorage.setItem("shift_shifts", JSON.stringify(shifts));
+}
+function load() {
+  staff = JSON.parse(localStorage.getItem("shift_staff")) || staff;
+  shifts = JSON.parse(localStorage.getItem("shift_shifts")) || {};
 }
 
+/* ===== 画像化→LINE（①） ===== */
+function makeImage() {
+  html2canvas(document.getElementById("shiftTable")).then(canvas => {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      if (navigator.share) {
+        navigator.share({ files: [new File([blob], "shift.png", { type: "image/png" })] });
+      } else {
+        window.open(url);
+        alert("画像を長押し→共有からLINEへ送ってください");
+      }
+    });
+  });
+}
+
+/* ===== 印刷 ===== */
+function printA4() { window.print(); }
+
+/* ===== 初期化 ===== */
+load();
 render();
-</script>
 
+/* ===== ホーム画面追加（③・PWA） ===== */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
 </body>
 </html>
