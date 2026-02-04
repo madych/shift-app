@@ -7,44 +7,113 @@
 
 <style>
 body { font-family: sans-serif; padding: 10px; }
-table { border-collapse: collapse; width: 100%; }
-th, td { border: 1px solid #999; padding: 6px; text-align: center; min-width: 70px; }
+h2 { margin-bottom: 5px; }
+
+.controls { margin-bottom: 10px; }
+button { margin: 3px; padding: 6px 10px; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {
+  border: 1px solid #999;
+  padding: 6px;
+  text-align: center;
+}
 th { background: #f0f0f0; }
-button { margin: 5px 5px 5px 0; }
-.shift-cell { min-height: 28px; line-height: 28px; user-select: none; }
-.editing { outline: 1px dashed #666; }
-.name-input { border: none; background: transparent; width: 95%; text-align: center; }
+
+.name-input {
+  border: none;
+  width: 95%;
+  text-align: center;
+  font-size: 14px;
+}
+
+.shift-cell {
+  min-height: 28px;
+  cursor: pointer;
+  user-select: none;
+}
 </style>
 </head>
 
 <body>
 
-<h2>シフト表</h2>
+<h2>シフト表（月曜はじまり・月〜土）</h2>
 
-<button onclick="makeImage()">📸 画像→LINE</button>
-<button onclick="print()">🖨 印刷</button>
-
-<div id="tableArea">
-<table id="shiftTable">
-<tr>
-  <th>名前</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
-</tr>
-<tr>
-  <td><input class="name-input" value="田中"></td>
-  <td class="shift-cell">〇</td>
-  <td class="shift-cell">9:00〜</td>
-  <td class="shift-cell"></td>
-  <td class="shift-cell">17:00〜</td>
-  <td class="shift-cell"></td>
-  <td class="shift-cell">〇</td>
-</tr>
-</table>
+<div class="controls">
+  <button onclick="prevWeek()">◀ 前週</button>
+  <strong id="weekLabel"></strong>
+  <button onclick="nextWeek()">次週 ▶</button>
 </div>
 
-<!-- ★ 必ず body の一番下 -->
+<div class="controls">
+  <button onclick="addStaff()">＋スタッフ追加</button>
+  <button onclick="makeImage()">📸 画像→LINE</button>
+</div>
+
+<table id="shiftTable">
+  <tr>
+    <th>名前</th>
+    <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
+  </tr>
+</table>
+
+<!-- html2canvas -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <script>
+/* ===== 週管理 ===== */
+let currentMonday = getMonday(new Date());
+
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  date.setDate(date.getDate() + diff);
+  return date;
+}
+
+function updateWeekLabel() {
+  const m = currentMonday.getMonth() + 1;
+  const d = currentMonday.getDate();
+  document.getElementById("weekLabel").textContent = `${m}/${d} 週`;
+}
+
+function prevWeek() {
+  currentMonday.setDate(currentMonday.getDate() - 7);
+  updateWeekLabel();
+}
+
+function nextWeek() {
+  currentMonday.setDate(currentMonday.getDate() + 7);
+  updateWeekLabel();
+}
+
+/* ===== 表操作 ===== */
+function addStaff(name = "新規") {
+  const table = document.getElementById("shiftTable");
+  const row = table.insertRow();
+
+  row.innerHTML = `
+    <td><input class="name-input" value="${name}"></td>
+    ${"<td class='shift-cell'></td>".repeat(6)}
+  `;
+
+  row.querySelectorAll(".shift-cell").forEach(cell => {
+    cell.addEventListener("click", () => editCell(cell));
+  });
+}
+
+function editCell(cell) {
+  const values = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
+  const current = cell.textContent.trim();
+  const index = values.indexOf(current);
+  cell.textContent = values[(index + 1) % values.length];
+}
+
+/* ===== 画像 → LINE ===== */
 function makeImage() {
   html2canvas(document.getElementById("shiftTable")).then(canvas => {
     canvas.toBlob(blob => {
@@ -59,6 +128,11 @@ function makeImage() {
     });
   });
 }
+
+/* ===== 初期化 ===== */
+updateWeekLabel();
+addStaff("田中");
+addStaff("佐藤");
 </script>
 
 </body>
