@@ -7,9 +7,9 @@
 
 <style>
 body { font-family: sans-serif; padding: 10px; }
-h2 { margin-bottom: 5px; }
+h2 { margin-bottom: 6px; }
 
-.controls { margin-bottom: 10px; }
+.controls { margin-bottom: 8px; }
 button { margin: 3px; padding: 6px 10px; }
 
 table {
@@ -54,17 +54,16 @@ th { background: #f0f0f0; }
 </div>
 
 <table id="shiftTable">
-  <tr>
+  <tr id="headerRow">
     <th>名前</th>
-    <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
   </tr>
 </table>
 
-<!-- html2canvas -->
+<!-- html2canvas（画像化用） -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <script>
-/* ===== 週管理 ===== */
+/* ===== 日付・週管理 ===== */
 let currentMonday = getMonday(new Date());
 
 function getMonday(d) {
@@ -75,10 +74,14 @@ function getMonday(d) {
   return date;
 }
 
+function formatDate(d) {
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 function updateWeekLabel() {
-  const m = currentMonday.getMonth() + 1;
-  const d = currentMonday.getDate();
-  document.getElementById("weekLabel").textContent = `${m}/${d} 週`;
+  document.getElementById("weekLabel").textContent =
+    `${formatDate(currentMonday)} 週`;
+  updateHeader();
 }
 
 function prevWeek() {
@@ -89,6 +92,19 @@ function prevWeek() {
 function nextWeek() {
   currentMonday.setDate(currentMonday.getDate() + 7);
   updateWeekLabel();
+}
+
+/* ===== 表ヘッダー（月〜土＋日付） ===== */
+function updateHeader() {
+  const header = document.getElementById("headerRow");
+  const days = ["月", "火", "水", "木", "金", "土"];
+
+  header.innerHTML = "<th>名前</th>";
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(currentMonday);
+    d.setDate(d.getDate() + i);
+    header.innerHTML += `<th>${days[i]}<br>${formatDate(d)}</th>`;
+  }
 }
 
 /* ===== 表操作 ===== */
@@ -102,11 +118,11 @@ function addStaff(name = "新規") {
   `;
 
   row.querySelectorAll(".shift-cell").forEach(cell => {
-    cell.addEventListener("click", () => editCell(cell));
+    cell.addEventListener("click", () => toggleCell(cell));
   });
 }
 
-function editCell(cell) {
+function toggleCell(cell) {
   const values = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
   const current = cell.textContent.trim();
   const index = values.indexOf(current);
@@ -129,7 +145,7 @@ function makeImage() {
   });
 }
 
-/* ===== 初期化 ===== */
+/* ===== 初期表示 ===== */
 updateWeekLabel();
 addStaff("田中");
 addStaff("佐藤");
