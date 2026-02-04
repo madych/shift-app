@@ -25,12 +25,16 @@
     font-size: 14px;
   }
 
-  /* シフト入力 */
-  .shift-edit {
-    min-height: 26px;
-    outline: none;
-    -webkit-user-select: text;
+  /* シフト欄 */
+  .shift-cell {
+    min-height: 28px;
+    line-height: 28px;
+    user-select: none;
+  }
+
+  .editing {
     user-select: text;
+    outline: 1px dashed #666;
   }
 
   button { margin: 5px 5px 5px 0; }
@@ -48,6 +52,8 @@
 
 <script>
 const days = ["月","火","水","木","金","土"];
+const cycleValues = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
+
 let staff = ["田中","佐藤"];
 let shifts = {};
 
@@ -59,19 +65,20 @@ function render() {
   staff.forEach(name => {
     html += "<tr>";
 
-    // 名前
     html += `<td>
       <input class="name-input" value="${name}"
         onchange="renameStaff('${name}', this.value)">
     </td>`;
 
-    // シフト
     days.forEach(d => {
       const key = name + d;
       const val = shifts[key] || "";
       html += `<td>
-        <div class="shift-edit" contenteditable
-          oninput="shifts['${key}']=this.innerText">${val}</div>
+        <div class="shift-cell"
+          onclick="cycleShift('${key}', this)"
+          ondblclick="enableEdit('${key}', this)">
+          ${val}
+        </div>
       </td>`;
     });
 
@@ -80,6 +87,29 @@ function render() {
 
   html += "</table>";
   document.getElementById("tableArea").innerHTML = html;
+}
+
+function cycleShift(key, el) {
+  if (el.isEditing) return;
+  const current = el.innerText.trim();
+  const idx = cycleValues.indexOf(current);
+  const next = cycleValues[(idx + 1) % cycleValues.length];
+  el.innerText = next;
+  shifts[key] = next;
+}
+
+function enableEdit(key, el) {
+  el.isEditing = true;
+  el.contentEditable = true;
+  el.classList.add("editing");
+  el.focus();
+
+  el.onblur = () => {
+    el.contentEditable = false;
+    el.classList.remove("editing");
+    el.isEditing = false;
+    shifts[key] = el.innerText.trim();
+  };
 }
 
 function addStaff() {
