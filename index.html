@@ -4,155 +4,47 @@
 <meta charset="UTF-8">
 <title>シフト表</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-  body { font-family: sans-serif; padding: 10px; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #999; padding: 6px; text-align: center; min-width: 70px; }
-  th { background: #f0f0f0; }
-  .name-input { width: 95%; border: none; outline: none; background: transparent; text-align: center; }
-  .shift-cell { min-height: 28px; line-height: 28px; user-select: none; }
-  .editing { user-select: text; outline: 1px dashed #666; }
-  button { margin: 5px 5px 5px 0; }
+body { font-family: sans-serif; padding: 10px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #999; padding: 6px; text-align: center; min-width: 70px; }
+th { background: #f0f0f0; }
+button { margin: 5px 5px 5px 0; }
+.shift-cell { min-height: 28px; line-height: 28px; user-select: none; }
+.editing { outline: 1px dashed #666; }
+.name-input { border: none; background: transparent; width: 95%; text-align: center; }
 </style>
 </head>
 
 <body>
 
-<h2>シフト表（月曜はじまり・月〜土）</h2>
+<h2>シフト表</h2>
 
-<button onclick="changeWeek(-7)">◀ 前週</button>
-<strong id="weekLabel"></strong>
-<button onclick="changeWeek(7)">次週 ▶</button>
-<br><br>
-
-<button onclick="addStaff()">＋スタッフ追加</button>
 <button onclick="makeImage()">📸 画像→LINE</button>
-<button onclick="printA4()">🖨 A4印刷</button>
+<button onclick="print()">🖨 印刷</button>
 
-<div id="tableArea"></div>
+<div id="tableArea">
+<table id="shiftTable">
+<tr>
+  <th>名前</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
+</tr>
+<tr>
+  <td><input class="name-input" value="田中"></td>
+  <td class="shift-cell">〇</td>
+  <td class="shift-cell">9:00〜</td>
+  <td class="shift-cell"></td>
+  <td class="shift-cell">17:00〜</td>
+  <td class="shift-cell"></td>
+  <td class="shift-cell">〇</td>
+</tr>
+</table>
+</div>
 
+<!-- ★ 必ず body の一番下 -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 <script>
-/* ===== 設定 ===== */
-const days = ["月","火","水","木","金","土"];
-const cycleValues = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
-let staff = ["田中","佐藤"];
-let shifts = {};
-let weekStart = getMonday(new Date());
-
-/* ===== 日付 ===== */
-function getMonday(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1) - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0,0,0,0);
-  return d;
-}
-function formatDate(d) {
-  return `${d.getMonth()+1}/${d.getDate()}`;
-}
-function getWeekKey() {
-  return weekStart.toISOString().slice(0,10);
-}
-
-/* ===== 表描画 ===== */
-function render() {
-  document.getElementById("weekLabel").innerText =
-    `${formatDate(weekStart)} 週`;
-
-  let html = "<table id='shiftTable'><tr><th>名前</th>";
-  days.forEach((d,i) => {
-    const date = new Date(weekStart);
-    date.setDate(date.getDate() + i);
-    html += `<th>${d}<br>${formatDate(date)}</th>`;
-  });
-  html += "</tr>";
-
-  staff.forEach(name => {
-    html += "<tr>";
-    html += `<td><input class="name-input" value="${name}"
-      onchange="renameStaff('${name}', this.value)"></td>`;
-
-    days.forEach((d,i) => {
-      const key = getWeekKey() + "_" + name + "_" + i;
-      const val = shifts[key] || "";
-      html += `<td>
-        <div class="shift-cell"
-          onclick="cycleShift('${key}', this)"
-          ondblclick="enableEdit('${key}', this)">
-          ${val}
-        </div>
-      </td>`;
-    });
-
-    html += "</tr>";
-  });
-
-  html += "</table>";
-  document.getElementById("tableArea").innerHTML = html;
-}
-
-/* ===== 操作 ===== */
-function cycleShift(key, el) {
-  if (el.isEditing) return;
-  const idx = cycleValues.indexOf(el.innerText.trim());
-  const next = cycleValues[(idx + 1) % cycleValues.length];
-  el.innerText = next;
-  shifts[key] = next;
-  save();
-}
-
-function enableEdit(key, el) {
-  el.isEditing = true;
-  el.contentEditable = true;
-  el.classList.add("editing");
-  el.focus();
-  el.onblur = () => {
-    el.contentEditable = false;
-    el.classList.remove("editing");
-    el.isEditing = false;
-    shifts[key] = el.innerText.trim();
-    save();
-  };
-}
-
-function addStaff() {
-  const name = prompt("名前");
-  if (name) {
-    staff.push(name);
-    save();
-    render();
-  }
-}
-
-function renameStaff(oldName, newName) {
-  staff = staff.map(n => n === oldName ? newName : n);
-  const newShifts = {};
-  for (let k in shifts) newShifts[k.replace(oldName, newName)] = shifts[k];
-  shifts = newShifts;
-  save();
-  render();
-}
-
-/* ===== 週切り替え ===== */
-function changeWeek(diff) {
-  weekStart.setDate(weekStart.getDate() + diff);
-  load();
-  render();
-}
-
-/* ===== 保存 ===== */
-function save() {
-  localStorage.setItem("shift_staff", JSON.stringify(staff));
-  localStorage.setItem("shift_shifts_" + getWeekKey(), JSON.stringify(shifts));
-}
-function load() {
-  staff = JSON.parse(localStorage.getItem("shift_staff")) || staff;
-  shifts = JSON.parse(localStorage.getItem("shift_shifts_" + getWeekKey())) || {};
-}
-
-/* ===== 画像→LINE ===== */
 function makeImage() {
   html2canvas(document.getElementById("shiftTable")).then(canvas => {
     canvas.toBlob(blob => {
@@ -162,18 +54,11 @@ function makeImage() {
       } else {
         const url = URL.createObjectURL(blob);
         window.open(url);
-        alert("画像を長押し→共有からLINEへ送ってください");
+        alert("画像を長押し → 共有 → LINE");
       }
     });
   });
 }
-
-/* ===== 印刷 ===== */
-function printA4() { window.print(); }
-
-/* ===== 初期化 ===== */
-load();
-render();
 </script>
 
 </body>
