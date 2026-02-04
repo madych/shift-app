@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <title>シフト表</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#ffffff">
-<link rel="manifest" href="manifest.json">
 <style>
   body { font-family: sans-serif; padding: 10px; }
   table { border-collapse: collapse; width: 100%; }
@@ -19,39 +17,76 @@
 </head>
 
 <body>
+
 <h2>シフト表（月曜はじまり・月〜土）</h2>
 
+<button onclick="changeWeek(-7)">◀ 前週</button>
+<strong id="weekLabel"></strong>
+<button onclick="changeWeek(7)">次週 ▶</button>
+<br><br>
+
 <button onclick="addStaff()">＋スタッフ追加</button>
-<button onclick="save()">💾 保存</button>
-<button onclick="makeImage()">📸 画像にする → LINE</button>
 <button onclick="printA4()">🖨 A4印刷</button>
 
 <div id="tableArea"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
-/* ===== データ ===== */
+/* ===== 基本設定 ===== */
 const days = ["月","火","水","木","金","土"];
 const cycleValues = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
+
 let staff = ["田中","佐藤"];
 let shifts = {};
+let weekStart = getMonday(new Date());
 
-/* ===== 描画 ===== */
+/* ===== 日付処理 ===== */
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function formatDate(d) {
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function getWeekKey() {
+  return weekStart.toISOString().slice(0,10);
+}
+
+/* ===== 表描画 ===== */
 function render() {
-  let html = "<table id='shiftTable'><tr><th>名前</th>";
-  days.forEach(d => html += `<th>${d}</th>`);
+  document.getElementById("weekLabel").innerText =
+    `${formatDate(weekStart)} 週`;
+
+  let html = "<table><tr><th>名前</th>";
+  days.forEach((d,i) => {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + i);
+    html += `<th>${d}<br>${formatDate(date)}</th>`;
+  });
   html += "</tr>";
 
   staff.forEach(name => {
     html += "<tr>";
-    html += `<td><input class="name-input" value="${name}" onchange="renameStaff('${name}', this.value)"></td>`;
-    days.forEach(d => {
-      const key = name + d;
+    html += `<td><input class="name-input" value="${name}"
+      onchange="renameStaff('${name}', this.value)"></td>`;
+
+    days.forEach((d,i) => {
+      const key = getWeekKey() + "_" + name + "_" + i;
       const val = shifts[key] || "";
-      html += `<td><div class="shift-cell"
-        onclick="cycleShift('${key}', this)"
-        ondblclick="enableEdit('${key}', this)">${val}</div></td>`;
+      html += `<td>
+        <div class="shift-cell"
+          onclick="cycleShift('${key}', this)"
+          ondblclick="enableEdit('${key}', this)">
+          ${val}
+        </div>
+      </td>`;
     });
+
     html += "</tr>";
   });
 
@@ -66,6 +101,7 @@ function cycleShift(key, el) {
   const next = cycleValues[(idx + 1) % cycleValues.length];
   el.innerText = next;
   shifts[key] = next;
+  save();
 }
 
 function enableEdit(key, el) {
@@ -84,7 +120,11 @@ function enableEdit(key, el) {
 
 function addStaff() {
   const name = prompt("名前");
-  if (name) { staff.push(name); render(); save(); }
+  if (name) {
+    staff.push(name);
+    save();
+    render();
+  }
 }
 
 function renameStaff(oldName, newName) {
@@ -92,32 +132,26 @@ function renameStaff(oldName, newName) {
   const newShifts = {};
   for (let k in shifts) newShifts[k.replace(oldName, newName)] = shifts[k];
   shifts = newShifts;
-  render(); save();
+  save();
+  render();
 }
 
-/* ===== 保存（②） ===== */
+/* ===== 週切り替え ===== */
+function changeWeek(diff) {
+  weekStart.setDate(weekStart.getDate() + diff);
+  load();
+  render();
+}
+
+/* ===== 保存 ===== */
 function save() {
   localStorage.setItem("shift_staff", JSON.stringify(staff));
-  localStorage.setItem("shift_shifts", JSON.stringify(shifts));
-}
-function load() {
-  staff = JSON.parse(localStorage.getItem("shift_staff")) || staff;
-  shifts = JSON.parse(localStorage.getItem("shift_shifts")) || {};
+  localStorage.setItem("shift_shifts_" + getWeekKey(), JSON.stringify(shifts));
 }
 
-/* ===== 画像化→LINE（①） ===== */
-function makeImage() {
-  html2canvas(document.getElementById("shiftTable")).then(canvas => {
-    canvas.toBlob(blob => {
-      const url = URL.createObjectURL(blob);
-      if (navigator.share) {
-        navigator.share({ files: [new File([blob], "shift.png", { type: "image/png" })] });
-      } else {
-        window.open(url);
-        alert("画像を長押し→共有からLINEへ送ってください");
-      }
-    });
-  });
+function load() {
+  staff = JSON.parse(localStorage.getItem("shift_staff")) || staff;
+  shifts = JSON.parse(localStorage.getItem("shift_shifts_" + getWeekKey())) || {};
 }
 
 /* ===== 印刷 ===== */
@@ -126,11 +160,7 @@ function printA4() { window.print(); }
 /* ===== 初期化 ===== */
 load();
 render();
-
-/* ===== ホーム画面追加（③・PWA） ===== */
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
 </script>
+
 </body>
 </html>
