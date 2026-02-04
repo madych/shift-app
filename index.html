@@ -26,20 +26,21 @@
 <br><br>
 
 <button onclick="addStaff()">＋スタッフ追加</button>
+<button onclick="makeImage()">📸 画像→LINE</button>
 <button onclick="printA4()">🖨 A4印刷</button>
 
 <div id="tableArea"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
-/* ===== 基本設定 ===== */
+/* ===== 設定 ===== */
 const days = ["月","火","水","木","金","土"];
 const cycleValues = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
-
 let staff = ["田中","佐藤"];
 let shifts = {};
 let weekStart = getMonday(new Date());
 
-/* ===== 日付処理 ===== */
+/* ===== 日付 ===== */
 function getMonday(date) {
   const d = new Date(date);
   const day = d.getDay();
@@ -48,11 +49,9 @@ function getMonday(date) {
   d.setHours(0,0,0,0);
   return d;
 }
-
 function formatDate(d) {
   return `${d.getMonth()+1}/${d.getDate()}`;
 }
-
 function getWeekKey() {
   return weekStart.toISOString().slice(0,10);
 }
@@ -62,7 +61,7 @@ function render() {
   document.getElementById("weekLabel").innerText =
     `${formatDate(weekStart)} 週`;
 
-  let html = "<table><tr><th>名前</th>";
+  let html = "<table id='shiftTable'><tr><th>名前</th>";
   days.forEach((d,i) => {
     const date = new Date(weekStart);
     date.setDate(date.getDate() + i);
@@ -148,10 +147,25 @@ function save() {
   localStorage.setItem("shift_staff", JSON.stringify(staff));
   localStorage.setItem("shift_shifts_" + getWeekKey(), JSON.stringify(shifts));
 }
-
 function load() {
   staff = JSON.parse(localStorage.getItem("shift_staff")) || staff;
   shifts = JSON.parse(localStorage.getItem("shift_shifts_" + getWeekKey())) || {};
+}
+
+/* ===== 画像→LINE ===== */
+function makeImage() {
+  html2canvas(document.getElementById("shiftTable")).then(canvas => {
+    canvas.toBlob(blob => {
+      const file = new File([blob], "shift.png", { type: "image/png" });
+      if (navigator.share) {
+        navigator.share({ files: [file] });
+      } else {
+        const url = URL.createObjectURL(blob);
+        window.open(url);
+        alert("画像を長押し→共有からLINEへ送ってください");
+      }
+    });
+  });
 }
 
 /* ===== 印刷 ===== */
