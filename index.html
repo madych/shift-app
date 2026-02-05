@@ -59,11 +59,11 @@ th { background: #f0f0f0; }
   </tr>
 </table>
 
-<!-- html2canvas（画像化用） -->
+<!-- html2canvas -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <script>
-/* ===== 日付・週管理 ===== */
+/* ===== 週・日付 ===== */
 let currentMonday = getMonday(new Date());
 
 function getMonday(d) {
@@ -78,27 +78,20 @@ function formatDate(d) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+function weekKey() {
+  return currentMonday.toISOString().slice(0,10);
+}
+
+/* ===== ヘッダー ===== */
 function updateWeekLabel() {
   document.getElementById("weekLabel").textContent =
     `${formatDate(currentMonday)} 週`;
   updateHeader();
 }
 
-function prevWeek() {
-  currentMonday.setDate(currentMonday.getDate() - 7);
-  updateWeekLabel();
-}
-
-function nextWeek() {
-  currentMonday.setDate(currentMonday.getDate() + 7);
-  updateWeekLabel();
-}
-
-/* ===== 表ヘッダー（月〜土＋日付） ===== */
 function updateHeader() {
   const header = document.getElementById("headerRow");
-  const days = ["月", "火", "水", "木", "金", "土"];
-
+  const days = ["月","火","水","木","金","土"];
   header.innerHTML = "<th>名前</th>";
   for (let i = 0; i < 6; i++) {
     const d = new Date(currentMonday);
@@ -107,26 +100,89 @@ function updateHeader() {
   }
 }
 
+/* ===== 週切替 ===== */
+function prevWeek() {
+  saveWeek();
+  currentMonday.setDate(currentMonday.getDate() - 7);
+  loadWeek();
+}
+
+function nextWeek() {
+  saveWeek();
+  currentMonday.setDate(currentMonday.getDate() + 7);
+  loadWeek();
+}
+
 /* ===== 表操作 ===== */
 function addStaff(name = "新規") {
   const table = document.getElementById("shiftTable");
   const row = table.insertRow();
 
   row.innerHTML = `
-    <td><input class="name-input" value="${name}"></td>
+    <td><input class="name-input" value="${name}" onchange="saveWeek()"></td>
     ${"<td class='shift-cell'></td>".repeat(6)}
   `;
 
   row.querySelectorAll(".shift-cell").forEach(cell => {
     cell.addEventListener("click", () => toggleCell(cell));
   });
+
+  saveWeek();
 }
 
+/* ===== タップ切替＋自由入力 ===== */
 function toggleCell(cell) {
-  const values = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
+  const presets = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
   const current = cell.textContent.trim();
-  const index = values.indexOf(current);
-  cell.textContent = values[(index + 1) % values.length];
+  const index = presets.indexOf(current);
+
+  if (index === presets.length - 1) {
+    const input = prompt("自由入力（例：13:00〜18:00、休み 等）", "");
+    cell.textContent = input ? input : "";
+  } else {
+    cell.textContent = presets[index + 1];
+  }
+  saveWeek();
+}
+
+/* ===== 週ごと保存 ===== */
+function saveWeek() {
+  const data = [];
+  const rows = document.querySelectorAll("#shiftTable tr");
+  rows.forEach((row, i) => {
+    if (i === 0) return;
+    const name = row.cells[0].querySelector("input").value;
+    const shifts = [];
+    for (let j = 1; j <= 6; j++) {
+      shifts.push(row.cells[j].textContent.trim());
+    }
+    data.push({ name, shifts });
+  });
+  localStorage.setItem("shift_" + weekKey(), JSON.stringify(data));
+}
+
+/* ===== 週読み込み ===== */
+function loadWeek() {
+  updateWeekLabel();
+
+  // 表クリア（ヘッダー以外）
+  const table = document.getElementById("shiftTable");
+  while (table.rows.length > 1) table.deleteRow(1);
+
+  const saved = localStorage.getItem("shift_" + weekKey());
+  if (!saved) return;
+
+  const data = JSON.parse(saved);
+  data.forEach(staff => {
+    const row = table.insertRow();
+    row.innerHTML = `
+      <td><input class="name-input" value="${staff.name}" onchange="saveWeek()"></td>
+      ${staff.shifts.map(v => `<td class="shift-cell">${v}</td>`).join("")}
+    `;
+    row.querySelectorAll(".shift-cell").forEach(cell => {
+      cell.addEventListener("click", () => toggleCell(cell));
+    });
+  });
 }
 
 /* ===== 画像 → LINE ===== */
@@ -146,9 +202,11 @@ function makeImage() {
 }
 
 /* ===== 初期表示 ===== */
-updateWeekLabel();
-addStaff("田中");
-addStaff("佐藤");
+loadWeek();
+if (document.querySelectorAll("#shiftTable tr").length === 1) {
+  addStaff("田中");
+  addStaff("佐藤");
+}
 </script>
 
 </body>
