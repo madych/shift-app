@@ -7,30 +7,15 @@
 
 <style>
 body { font-family: sans-serif; padding: 10px; }
-h2 { margin-bottom: 6px; }
-
 .controls { margin-bottom: 8px; }
 button { margin: 3px; padding: 6px 10px; }
-
 table { border-collapse: collapse; width: 100%; }
 th, td { border: 1px solid #999; padding: 6px; text-align: center; }
 th { background: #f0f0f0; }
-
-.name-input {
-  border: none;
-  width: 100%;
-  min-width: 70px;   /* ← 3文字以上表示できる幅 */
-  text-align: center;
-  font-size: 14px;
-}
-.shift-cell {
-  min-height: 28px;
-  cursor: pointer;
-  user-select: none;
-}
+.name-input { border: none; width: 100%; min-width: 70px; text-align: center; }
+.shift-cell { min-height: 28px; cursor: pointer; user-select: none; }
 </style>
 </head>
-
 <body>
 
 <h2>シフト表（月曜はじまり・月〜土）</h2>
@@ -43,161 +28,115 @@ th { background: #f0f0f0; }
 
 <div class="controls">
   <button onclick="addStaff()">＋スタッフ追加</button>
-  <button onclick="makeImage()">📸 画像→LINE</button>
 </div>
 
 <table id="shiftTable">
   <tr id="headerRow"><th>名前</th></tr>
 </table>
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
 <script>
+/* ===== 共通スタッフ保存 ===== */
+let staffList = JSON.parse(localStorage.getItem("staffList")) || ["田中","佐藤"];
+
+function saveStaffList(){
+  localStorage.setItem("staffList", JSON.stringify(staffList));
+}
+
 /* ===== 週管理 ===== */
 let currentMonday = getMonday(new Date());
 
-function getMonday(d) {
+function getMonday(d){
   const date = new Date(d);
   const day = date.getDay();
-  const diff = (day === 0 ? -6 : 1) - day;
-  date.setDate(date.getDate() + diff);
+  const diff = (day===0?-6:1)-day;
+  date.setDate(date.getDate()+diff);
   return date;
 }
 
-function formatDate(d) {
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+function formatDate(d){
+  return `${d.getMonth()+1}/${d.getDate()}`;
 }
 
-function weekKey() {
+function weekKey(){
   return currentMonday.toISOString().slice(0,10);
 }
 
 /* ===== ヘッダー ===== */
-function updateHeader() {
-  const header = document.getElementById("headerRow");
-  const days = ["月","火","水","木","金","土"];
-  header.innerHTML = "<th>名前</th>";
-  for (let i = 0; i < 6; i++) {
-    const d = new Date(currentMonday);
-    d.setDate(d.getDate() + i);
-    header.innerHTML += `<th>${days[i]}<br>${formatDate(d)}</th>`;
+function updateHeader(){
+  const header=document.getElementById("headerRow");
+  const days=["月","火","水","木","金","土"];
+  header.innerHTML="<th>名前</th>";
+  for(let i=0;i<6;i++){
+    const d=new Date(currentMonday);
+    d.setDate(d.getDate()+i);
+    header.innerHTML+=`<th>${days[i]}<br>${formatDate(d)}</th>`;
   }
-  document.getElementById("weekLabel").textContent =
-    `${formatDate(currentMonday)} 週`;
-}
-
-/* ===== スタッフ名取得（今の表から） ===== */
-function getCurrentStaffNames() {
-  const names = [];
-  document.querySelectorAll("#shiftTable tr").forEach((row, i) => {
-    if (i === 0) return;
-    names.push(row.cells[0].querySelector("input").value);
-  });
-  return names;
+  document.getElementById("weekLabel").textContent=`${formatDate(currentMonday)} 週`;
 }
 
 /* ===== 週切替 ===== */
-function prevWeek() {
-  saveWeek();
-  const names = getCurrentStaffNames();
-  currentMonday.setDate(currentMonday.getDate() - 7);
-  loadWeek(names);
-}
-
-function nextWeek() {
-  saveWeek();
-  const names = getCurrentStaffNames();
-  currentMonday.setDate(currentMonday.getDate() + 7);
-  loadWeek(names);
-}
+function prevWeek(){ saveWeek(); currentMonday.setDate(currentMonday.getDate()-7); loadWeek(); }
+function nextWeek(){ saveWeek(); currentMonday.setDate(currentMonday.getDate()+7); loadWeek(); }
 
 /* ===== スタッフ追加 ===== */
-function addStaff(name = "新規") {
-  const table = document.getElementById("shiftTable");
-  const row = table.insertRow();
-  row.innerHTML = `
-    <td><input class="name-input" value="${name}" onchange="saveWeek()"></td>
-    ${"<td class='shift-cell'></td>".repeat(6)}
-  `;
-  row.querySelectorAll(".shift-cell").forEach(c =>
-    c.addEventListener("click", () => toggleCell(c))
-  );
-  saveWeek();
+function addStaff(){
+  const name=prompt("スタッフ名入力","");
+  if(!name) return;
+  staffList.push(name);
+  saveStaffList();
+  loadWeek();
 }
 
-/* ===== タップ切替＋自由入力 ===== */
-function toggleCell(cell) {
-  const presets = ["", "〇", "9:00〜", "17:00〜", "19:00〜"];
-  const cur = cell.textContent.trim();
-  const idx = presets.indexOf(cur);
-  if (idx === presets.length - 1) {
-    const v = prompt("自由入力", "");
-    cell.textContent = v ? v : "";
-  } else {
-    cell.textContent = presets[idx + 1];
+/* ===== セル操作 ===== */
+function toggleCell(cell){
+  const presets=["","〇","9:00〜","17:00〜","19:00〜"];
+  const cur=cell.textContent.trim();
+  const idx=presets.indexOf(cur);
+  if(idx===presets.length-1){
+    const v=prompt("自由入力","");
+    cell.textContent=v?v:"";
+  }else{
+    cell.textContent=presets[idx+1];
   }
   saveWeek();
 }
 
 /* ===== 保存 ===== */
-function saveWeek() {
-  const data = [];
-  document.querySelectorAll("#shiftTable tr").forEach((row, i) => {
-    if (i === 0) return;
-    const name = row.cells[0].querySelector("input").value;
-    const shifts = [];
-    for (let j = 1; j <= 6; j++) shifts.push(row.cells[j].textContent.trim());
-    data.push({ name, shifts });
+function saveWeek(){
+  const data=[];
+  document.querySelectorAll("#shiftTable tr").forEach((row,i)=>{
+    if(i===0)return;
+    const shifts=[];
+    for(let j=1;j<=6;j++) shifts.push(row.cells[j].textContent.trim());
+    data.push(shifts);
   });
-  localStorage.setItem("shift_" + weekKey(), JSON.stringify(data));
+  localStorage.setItem("shift_"+weekKey(),JSON.stringify(data));
 }
 
-/* ===== 読み込み（名前引き継ぎ対応） ===== */
-function loadWeek(fallbackNames = []) {
+/* ===== 読み込み ===== */
+function loadWeek(){
   updateHeader();
+  const table=document.getElementById("shiftTable");
+  while(table.rows.length>1) table.deleteRow(1);
 
-  const table = document.getElementById("shiftTable");
-  while (table.rows.length > 1) table.deleteRow(1);
+  const saved=JSON.parse(localStorage.getItem("shift_"+weekKey())||"null");
 
-  const saved = localStorage.getItem("shift_" + weekKey());
-  if (saved) {
-    JSON.parse(saved).forEach(staff => {
-      const row = table.insertRow();
-      row.innerHTML = `
-        <td><input class="name-input" value="${staff.name}" onchange="saveWeek()"></td>
-        ${staff.shifts.map(v => `<td class="shift-cell">${v}</td>`).join("")}
-      `;
-      row.querySelectorAll(".shift-cell").forEach(c =>
-        c.addEventListener("click", () => toggleCell(c))
-      );
-    });
-  } else {
-    // ★ 保存が無い週でも名前だけ引き継ぐ
-    fallbackNames.forEach(name => addStaff(name));
-  }
-}
-
-/* ===== 画像 → LINE ===== */
-function makeImage() {
-  html2canvas(document.getElementById("shiftTable")).then(canvas => {
-    canvas.toBlob(blob => {
-      const file = new File([blob], "shift.png", { type: "image/png" });
-      if (navigator.share) {
-        navigator.share({ files: [file] });
-      } else {
-        const url = URL.createObjectURL(blob);
-        window.open(url);
+  staffList.forEach((name,index)=>{
+    const row=table.insertRow();
+    row.innerHTML=`<td>${name}</td>${"<td class='shift-cell'></td>".repeat(6)}`;
+    if(saved && saved[index]){
+      for(let j=0;j<6;j++){
+        row.cells[j+1].textContent=saved[index][j];
       }
+    }
+    row.querySelectorAll(".shift-cell").forEach(c=>{
+      c.addEventListener("click",()=>toggleCell(c));
     });
   });
 }
 
 /* ===== 初期表示 ===== */
 loadWeek();
-if (document.querySelectorAll("#shiftTable tr").length === 1) {
-  addStaff("田中");
-  addStaff("佐藤");
-}
 </script>
 
 </body>
