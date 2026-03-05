@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 <head>
 <meta charset="UTF-8">
@@ -33,7 +34,7 @@ background:#f5f5f5;
 }
 
 .name{
-min-width:80px;
+min-width:90px;
 }
 
 button{
@@ -47,22 +48,20 @@ font-size:12px;
 padding:4px 6px;
 }
 
-.no-print{
-}
-
 @media print{
 
 button{
 display:none;
 }
 
-.no-print{
+.delete{
 display:none;
 }
 
 }
 
 </style>
+
 </head>
 
 <body>
@@ -93,10 +92,10 @@ display:none;
 
 <script>
 
-let staff=["田中","佐藤"]
+const API_URL="https://script.google.com/macros/s/AKfycbyA3-Qr9Vp_gTaOa5NK9ICGFAlfLcwhwmBx3iFYd_oDsvYuddotHwfxum-sj7Oi3aMB/exec"
 
+let staff=[]
 let shifts={}
-
 let weekOffset=0
 
 function getMonday(d){
@@ -117,6 +116,16 @@ return (d.getMonth()+1)+"/"+d.getDate()
 
 }
 
+function getWeekKey(){
+
+let monday=getMonday(new Date())
+
+monday.setDate(monday.getDate()+weekOffset*7)
+
+return monday.toISOString().slice(0,10)
+
+}
+
 function getWeekDates(){
 
 let monday=getMonday(new Date())
@@ -127,11 +136,11 @@ let dates=[]
 
 for(let i=0;i<6;i++){
 
-let dt=new Date(monday)
+let d=new Date(monday)
 
-dt.setDate(monday.getDate()+i)
+d.setDate(monday.getDate()+i)
 
-dates.push(dt)
+dates.push(d)
 
 }
 
@@ -150,6 +159,8 @@ let i=list.indexOf(v)
 i=(i+1)%list.length
 
 cell.innerText=list[i]
+
+save()
 
 }
 
@@ -171,21 +182,25 @@ html+="<th>"+formatDate(d)+"</th>"
 
 })
 
-html+="<th class='no-print'>削除</th></tr>"
+html+="<th class='delete'>削除</th></tr>"
 
 staff.forEach((s,i)=>{
 
 html+="<tr>"
 
-html+="<td contenteditable='true' class='name'>"+s+"</td>"
+html+="<td contenteditable='true' class='name' oninput='updateName("+i+",this)'>"+s+"</td>"
 
 dates.forEach((d,di)=>{
 
-html+="<td contenteditable='true' onclick='cycleShift(this)'></td>"
+let key=getWeekKey()+"_"+i+"_"+di
+
+let v=shifts[key]||""
+
+html+="<td contenteditable='true' onclick='cycleShift(this)' oninput='updateShift("+i+","+di+",this)'>"+v+"</td>"
 
 })
 
-html+="<td class='no-print'><button class='delete-btn' onclick='deleteStaff("+i+")'>🗑</button></td>"
+html+="<td class='delete'><button class='delete-btn' onclick='deleteStaff("+i+")'>🗑</button></td>"
 
 html+="</tr>"
 
@@ -201,6 +216,8 @@ function addStaff(){
 
 staff.push("名前")
 
+save()
+
 render()
 
 }
@@ -209,7 +226,27 @@ function deleteStaff(i){
 
 staff.splice(i,1)
 
+save()
+
 render()
+
+}
+
+function updateName(i,el){
+
+staff[i]=el.innerText
+
+save()
+
+}
+
+function updateShift(i,di,el){
+
+let key=getWeekKey()+"_"+i+"_"+di
+
+shifts[key]=el.innerText
+
+save()
 
 }
 
@@ -217,7 +254,7 @@ function prevWeek(){
 
 weekOffset--
 
-render()
+load()
 
 }
 
@@ -225,7 +262,7 @@ function nextWeek(){
 
 weekOffset++
 
-render()
+load()
 
 }
 
@@ -251,7 +288,32 @@ link.click()
 
 }
 
+function save(){
+
+const data={staff,shifts}
+
+fetch(API_URL,{
+method:"POST",
+body:JSON.stringify(data)
+})
+
+}
+
+async function load(){
+
+const res=await fetch(API_URL)
+
+const data=await res.json()
+
+if(data.staff) staff=data.staff
+
+if(data.shifts) shifts=data.shifts
+
 render()
+
+}
+
+load()
 
 </script>
 
