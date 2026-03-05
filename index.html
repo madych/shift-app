@@ -3,176 +3,256 @@
 <head>
 <meta charset="UTF-8">
 <title>シフト表</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
-body { font-family:sans-serif; text-align:center; }
-table { border-collapse:collapse; margin:auto; }
-th, td { border:1px solid #ccc; padding:6px; text-align:center; }
-input { width:100%; border:none; text-align:center; }
-button { margin:5px; padding:6px 10px; }
-.name-col { min-width:90px; }
 
-.delete-btn {
-  font-size:12px;
-  padding:2px 6px;
+body{
+font-family:sans-serif;
+text-align:center;
+margin:10px;
 }
 
-.no-print { }
-
-@media print {
-  .no-print { display:none !important; }
+table{
+border-collapse:collapse;
+margin:auto;
+width:100%;
+max-width:900px;
 }
+
+th,td{
+border:1px solid #ccc;
+padding:8px;
+text-align:center;
+font-size:16px;
+}
+
+th{
+background:#f5f5f5;
+}
+
+.name{
+min-width:80px;
+}
+
+button{
+margin:5px;
+padding:8px 12px;
+font-size:14px;
+}
+
+.delete-btn{
+font-size:12px;
+padding:4px 6px;
+}
+
+.no-print{
+}
+
+@media print{
+
+button{
+display:none;
+}
+
+.no-print{
+display:none;
+}
+
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>シフト表</h2>
+<h2>シフト表（月曜はじまり・月〜土）</h2>
 
-<div class="no-print">
+<div>
+
 <button onclick="prevWeek()">◀ 前週</button>
+
 <span id="weekLabel"></span>
+
 <button onclick="nextWeek()">次週 ▶</button>
+
 </div>
 
-<div class="no-print">
+<div>
+
 <button onclick="addStaff()">＋スタッフ追加</button>
-<button onclick="printA4()">A4印刷</button>
+
+<button onclick="printTable()">A4印刷</button>
+
 <button onclick="shareLine()">画像→LINE</button>
+
 </div>
 
 <div id="tableArea"></div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyA3-Qr9Vp_gTaOa5NK9ICGFAlfLcwhwmBx3iFYd_oDsvYuddotHwfxum-sj7Oi3aMB/exec";
 
-let staff = [];
-let shifts = {};
-let weekStart = getMonday(new Date());
+let staff=["田中","佐藤"]
+
+let shifts={}
+
+let weekOffset=0
 
 function getMonday(d){
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day==0?-6:1);
-  return new Date(date.setDate(diff));
+
+d=new Date(d)
+
+const day=d.getDay()
+
+const diff=d.getDate()-day+(day==0?-6:1)
+
+return new Date(d.setDate(diff))
+
 }
 
 function formatDate(d){
-  return (d.getMonth()+1)+"/"+d.getDate();
+
+return (d.getMonth()+1)+"/"+d.getDate()
+
 }
 
-function weekKey(){
-  return weekStart.toISOString().slice(0,10);
+function getWeekDates(){
+
+let monday=getMonday(new Date())
+
+monday.setDate(monday.getDate()+weekOffset*7)
+
+let dates=[]
+
+for(let i=0;i<6;i++){
+
+let dt=new Date(monday)
+
+dt.setDate(monday.getDate()+i)
+
+dates.push(dt)
+
+}
+
+return dates
+
+}
+
+function cycleShift(cell){
+
+const list=["","〇","9:00〜","17:00〜","19:00〜"]
+
+let v=cell.innerText.trim()
+
+let i=list.indexOf(v)
+
+i=(i+1)%list.length
+
+cell.innerText=list[i]
+
 }
 
 function render(){
-  const area = document.getElementById("tableArea");
-  const days = ["月","火","水","木","金","土"];
-  let html = "<table><tr><th class='name-col'>名前</th>";
 
-  let tempDate = new Date(weekStart);
-  for(let i=0;i<6;i++){
-    html += "<th>"+days[i]+"<br>"+formatDate(tempDate)+"</th>";
-    tempDate.setDate(tempDate.getDate()+1);
-  }
-  html += "<th class='no-print'>削除</th></tr>";
+let dates=getWeekDates()
 
-  const key = weekKey();
-  if(!shifts[key]) shifts[key]={};
+document.getElementById("weekLabel").innerText=
 
-  staff.forEach((name,i)=>{
-    html+="<tr>";
-    html+="<td><input value='"+name+"' onchange='updateName("+i+",this.value)'></td>";
+formatDate(dates[0])+" 週"
 
-    if(!shifts[key][i]) shifts[key][i]=["","","","","",""];
+let html="<table>"
 
-    for(let d=0;d<6;d++){
-      html+="<td onclick='cycle("+i+","+d+")'>"+shifts[key][i][d]+"</td>";
-    }
+html+="<tr><th class='name'>名前</th>"
 
-    html+="<td class='no-print'><button class='delete-btn' onclick='deleteStaff("+i+")'>🗑</button></td>";
-    html+="</tr>";
-  });
+dates.forEach(d=>{
 
-  html+="</table>";
-  area.innerHTML=html;
-  document.getElementById("weekLabel").innerText=formatDate(weekStart)+" 週";
-}
+html+="<th>"+formatDate(d)+"</th>"
 
-function cycle(i,d){
-  const key=weekKey();
-  const list=["","〇","9:00〜","17:00〜","19:00〜"];
-  let current=shifts[key][i][d];
-  let idx=list.indexOf(current);
-  if(idx==-1) idx=0;
-  idx=(idx+1)%list.length;
-  shifts[key][i][d]=list[idx];
-  save();
-  render();
+})
+
+html+="<th class='no-print'>削除</th></tr>"
+
+staff.forEach((s,i)=>{
+
+html+="<tr>"
+
+html+="<td contenteditable='true' class='name'>"+s+"</td>"
+
+dates.forEach((d,di)=>{
+
+html+="<td contenteditable='true' onclick='cycleShift(this)'></td>"
+
+})
+
+html+="<td class='no-print'><button class='delete-btn' onclick='deleteStaff("+i+")'>🗑</button></td>"
+
+html+="</tr>"
+
+})
+
+html+="</table>"
+
+document.getElementById("tableArea").innerHTML=html
+
 }
 
 function addStaff(){
-  staff.push("新規");
-  save();
-  render();
+
+staff.push("名前")
+
+render()
+
 }
 
 function deleteStaff(i){
-  staff.splice(i,1);
-  save();
-  render();
-}
 
-function updateName(i,val){
-  staff[i]=val;
-  save();
+staff.splice(i,1)
+
+render()
+
 }
 
 function prevWeek(){
-  weekStart.setDate(weekStart.getDate()-7);
-  load();
+
+weekOffset--
+
+render()
+
 }
 
 function nextWeek(){
-  weekStart.setDate(weekStart.getDate()+7);
-  load();
+
+weekOffset++
+
+render()
+
 }
 
-async function save(){
-  await fetch(API_URL,{
-    method:"POST",
-    body:JSON.stringify({
-      staff:staff,
-      shifts:shifts,
-      weekStart:weekStart.toISOString()
-    })
-  });
-}
+function printTable(){
 
-async function load(){
-  try{
-    const res=await fetch(API_URL);
-    const data=await res.json();
-    if(data.staff) staff=data.staff;
-    if(data.shifts) shifts=data.shifts;
-  }catch(e){}
-  render();
-}
+window.print()
 
-function printA4(){ window.print(); }
+}
 
 function shareLine(){
-  html2canvas(document.getElementById("tableArea")).then(canvas=>{
-    const link=document.createElement("a");
-    link.download="shift.png";
-    link.href=canvas.toDataURL();
-    link.click();
-  });
+
+html2canvas(document.getElementById("tableArea")).then(canvas=>{
+
+let link=document.createElement("a")
+
+link.download="shift.png"
+
+link.href=canvas.toDataURL()
+
+link.click()
+
+})
+
 }
 
-load();
+render()
+
 </script>
 
 </body>
