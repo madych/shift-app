@@ -66,7 +66,7 @@ display:none;
 
 <body>
 
-<h2>シフト表</h2>
+<h2>シフト表（月曜はじまり・月〜土）</h2>
 
 <div>
 
@@ -97,6 +97,21 @@ const API_URL="https://script.google.com/macros/s/AKfycbyA3-Qr9Vp_gTaOa5NK9ICGFA
 let staff=[]
 let shifts={}
 let weekOffset=0
+
+const days=["月","火","水","木","金","土"]
+
+const shiftList=[
+"",
+"〇",
+"9:00〜",
+"10:30〜",
+"11:00〜",
+"16:00〜",
+"16:30〜",
+"17:00〜",
+"18:30〜",
+"19:00〜"
+]
 
 function getMonday(d){
 
@@ -150,7 +165,7 @@ return dates
 
 function cycleShift(cell){
 
-const list=["","〇","9:00〜","17:00〜","19:00〜"]
+const list=shiftList
 
 let v=cell.innerText.trim()
 
@@ -176,9 +191,9 @@ let html="<table>"
 
 html+="<tr><th class='name'>名前</th>"
 
-dates.forEach(d=>{
+dates.forEach((d,i)=>{
 
-html+="<th>"+formatDate(d)+"</th>"
+html+="<th>"+days[i]+"<br>"+formatDate(d)+"</th>"
 
 })
 
