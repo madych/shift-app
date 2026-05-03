@@ -158,14 +158,21 @@ alert("保存OK")
 
 function load(){
 
-const key="shift_"+getWeekKey()
+try{
 
+const key="shift_"+getWeekKey()
 const data=localStorage.getItem(key)
 
 if(data){
 const json=JSON.parse(data)
 staff=json.staff||[]
 shifts=json.shifts||{}
+}
+
+}catch(e){
+console.log("読み込みエラー",e)
+staff=[]
+shifts={}
 }
 
 render()
