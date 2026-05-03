@@ -10,32 +10,31 @@
 <style>
 body{font-family:sans-serif;text-align:center;margin:10px;}
 table{border-collapse:collapse;margin:auto;width:100%;max-width:900px;}
-th,td{border:1px solid #ccc;padding:8px;text-align:center;font-size:16px;}
+th,td{border:1px solid #ccc;padding:6px;text-align:center;font-size:14px;}
 th{background:#f5f5f5;}
-.name{min-width:90px;}
-button{margin:5px;padding:8px 12px;font-size:14px;}
-.delete-btn{font-size:12px;padding:4px 6px;}
-@media print{
-button{display:none;}
+.name{min-width:80px;}
+button{margin:4px;padding:6px 10px;font-size:13px;}
 .delete{display:none;}
+@media(min-width:600px){
+.delete{display:table-cell;}
 }
 </style>
 </head>
 
 <body>
 
-<h2>シフト表</h2>
+<h3>シフト表</h3>
 
 <div>
-<button onclick="prevWeek()">◀ 前週</button>
+<button onclick="prevWeek()">◀</button>
 <span id="weekLabel"></span>
-<button onclick="nextWeek()">次週 ▶</button>
+<button onclick="nextWeek()">▶</button>
 </div>
 
 <div>
-<button onclick="addStaff()">＋スタッフ追加</button>
-<button onclick="printTable()">A4印刷</button>
-<button onclick="shareLine()">画像保存</button>
+<button onclick="addStaff()">＋</button>
+<button onclick="save()">保存</button>
+<button onclick="makeImage()">画像</button>
 </div>
 
 <div id="tableArea">読み込み中...</div>
@@ -49,75 +48,59 @@ let shifts={}
 let weekOffset=0
 
 const days=["月","火","水","木","金","土"]
+const list=["","〇","9:00〜","10:30〜","11:00〜","16:00〜","16:30〜","17:00〜","18:30〜","19:00〜"]
 
-const shiftList=["","〇","9:00〜","10:30〜","11:00〜","16:00〜","16:30〜","17:00〜","18:30〜","19:00〜"]
-
-function getMonday(d){
+function monday(d){
 d=new Date(d)
 const day=d.getDay()
 const diff=d.getDate()-day+(day==0?-6:1)
 return new Date(d.setDate(diff))
 }
 
-function formatDate(d){
-return (d.getMonth()+1)+"/"+d.getDate()
-}
-
-function getWeekKey(){
-let monday=getMonday(new Date())
-monday.setDate(monday.getDate()+weekOffset*7)
-return monday.toISOString().slice(0,10)
-}
-
-function getWeekDates(){
-let monday=getMonday(new Date())
-monday.setDate(monday.getDate()+weekOffset*7)
-let dates=[]
+function dates(){
+let m=monday(new Date())
+m.setDate(m.getDate()+weekOffset*7)
+let arr=[]
 for(let i=0;i<6;i++){
-let d=new Date(monday)
-d.setDate(monday.getDate()+i)
-dates.push(d)
+let d=new Date(m)
+d.setDate(m.getDate()+i)
+arr.push(d)
 }
-return dates
+return arr
 }
 
-function cycleShift(cell){
-let v=cell.innerText.trim()
-let i=shiftList.indexOf(v)
-i=(i+1)%shiftList.length
-cell.innerText=shiftList[i]
-save()
+function key(){
+let m=monday(new Date())
+m.setDate(m.getDate()+weekOffset*7)
+return m.toISOString().slice(0,10)
 }
 
 function render(){
 
-let dates=getWeekDates()
+let d=dates()
 
 document.getElementById("weekLabel").innerText=
-formatDate(dates[0])+" 週"
+(d[0].getMonth()+1)+"/"+d[0].getDate()
 
-let html="<table>"
-html+="<tr><th class='name'>名前</th>"
+let html="<table><tr><th>名前</th>"
 
-dates.forEach((d,i)=>{
-html+="<th>"+days[i]+"<br>"+formatDate(d)+"</th>"
+d.forEach((x,i)=>{
+html+="<th>"+days[i]+"<br>"+(x.getMonth()+1)+"/"+x.getDate()+"</th>"
 })
 
-html+="<th class='delete'>削除</th></tr>"
+html+="</tr>"
 
 staff.forEach((s,i)=>{
 
 html+="<tr>"
 
-html+="<td contenteditable='true' class='name' oninput='updateName("+i+",this)'>"+s+"</td>"
+html+="<td contenteditable oninput='nameEdit("+i+",this)'>"+s+"</td>"
 
-dates.forEach((d,di)=>{
-let key=getWeekKey()+"_"+i+"_"+di
-let v=shifts[key]||""
-html+="<td contenteditable='true' onclick='cycleShift(this)' oninput='updateShift("+i+","+di+",this)'>"+v+"</td>"
+d.forEach((x,di)=>{
+let k=key()+"_"+i+"_"+di
+let v=shifts[k]||""
+html+="<td contenteditable onclick='tap(this)' oninput='edit("+i+","+di+",this)'>"+v+"</td>"
 })
-
-html+="<td class='delete'><button class='delete-btn' onclick='deleteStaff("+i+")'>🗑</button></td>"
 
 html+="</tr>"
 
@@ -128,27 +111,24 @@ html+="</table>"
 document.getElementById("tableArea").innerHTML=html
 }
 
+function tap(c){
+let v=c.innerText.trim()
+let i=list.indexOf(v)
+i=(i+1)%list.length
+c.innerText=list[i]
+}
+
 function addStaff(){
 staff.push("名前")
-save()
 render()
 }
 
-function deleteStaff(i){
-staff.splice(i,1)
-save()
-render()
+function nameEdit(i,e){
+staff[i]=e.innerText
 }
 
-function updateName(i,el){
-staff[i]=el.innerText
-save()
-}
-
-function updateShift(i,di,el){
-let key=getWeekKey()+"_"+i+"_"+di
-shifts[key]=el.innerText
-save()
+function edit(i,d,e){
+shifts[key()+"_"+i+"_"+d]=e.innerText
 }
 
 function prevWeek(){
@@ -161,44 +141,35 @@ weekOffset++
 load()
 }
 
-function printTable(){
-window.print()
-}
-
-function shareLine(){
-html2canvas(document.getElementById("tableArea")).then(canvas=>{
-const imgData = canvas.toDataURL("image/png");
-const link=document.createElement("a");
-link.href=imgData;
-link.download="shift.png";
-link.click();
-const w = window.open("");
-w.document.write("<img src='"+imgData+"' style='width:100%'>");
-});
-}
-
 function save(){
+
 fetch(API_URL,{
 method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-staff:staff,
-shifts:shifts
-}),
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({staff,shifts}),
 mode:"no-cors"
 })
+
+alert("保存しました")
+
 }
 
 async function load(){
 try{
-const res=await fetch(API_URL)
-const data=await res.json()
-if(data.staff) staff=data.staff
-if(data.shifts) shifts=data.shifts
+let r=await fetch(API_URL)
+let j=await r.json()
+staff=j.staff||[]
+shifts=j.shifts||{}
 }catch(e){}
 render()
+}
+
+function makeImage(){
+html2canvas(document.getElementById("tableArea")).then(c=>{
+let img=c.toDataURL()
+let w=window.open("")
+w.document.write("<img src='"+img+"' width='100%'>")
+})
 }
 
 load()
