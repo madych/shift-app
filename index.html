@@ -1,98 +1,48 @@
 <!DOCTYPE html>
-
 <html>
 <head>
 <meta charset="UTF-8">
 <title>シフト表</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
-
-body{
-font-family:sans-serif;
-text-align:center;
-margin:10px;
-}
-
-table{
-border-collapse:collapse;
-margin:auto;
-width:100%;
-max-width:900px;
-}
-
-th,td{
-border:1px solid #ccc;
-padding:8px;
-text-align:center;
-font-size:16px;
-}
-
-th{
-background:#f5f5f5;
-}
-
-.name{
-min-width:90px;
-}
-
-button{
-margin:5px;
-padding:8px 12px;
-font-size:14px;
-}
-
-.delete-btn{
-font-size:12px;
-padding:4px 6px;
-}
-
+body{font-family:sans-serif;text-align:center;margin:10px;}
+table{border-collapse:collapse;margin:auto;width:100%;max-width:900px;}
+th,td{border:1px solid #ccc;padding:8px;text-align:center;font-size:16px;}
+th{background:#f5f5f5;}
+.name{min-width:90px;}
+button{margin:5px;padding:8px 12px;font-size:14px;}
+.delete-btn{font-size:12px;padding:4px 6px;}
 @media print{
-
-button{
-display:none;
+button{display:none;}
+.delete{display:none;}
 }
-
-.delete{
-display:none;
-}
-
-}
-
 </style>
-
 </head>
 
 <body>
 
-<h2>シフト表</h2>
+<h2>シフト表（月〜土）</h2>
 
 <div>
-
 <button onclick="prevWeek()">◀ 前週</button>
-
 <span id="weekLabel"></span>
-
 <button onclick="nextWeek()">次週 ▶</button>
-
 </div>
 
 <div>
-
 <button onclick="addStaff()">＋スタッフ追加</button>
-
 <button onclick="printTable()">A4印刷</button>
-
-<button onclick="shareLine()">画像→LINE</button>
-
+<button onclick="shareLine()">画像保存</button>
 </div>
 
-<div id="tableArea"></div>
+<div id="tableArea">読み込み中...</div>
 
 <script>
 
-const API_URL="https://script.google.com/macros/s/AKfycbzeKRPs_fveBMWvxHlaB4p88s4Je_bx3aTCvhLUxLZsH2DGK7xqKQbZDROD5kCcxsNI/exec"
+const API_URL="https://script.google.com/macros/s/AKfycbzI5DIotYt29gyMCYVhAnE9qIWDZ-qNQA_7eIlQ8ZCy-ZI3WvjKxmVTJMA1dOQ1qwe-/exec"
 
 let staff=[]
 let shifts={}
@@ -100,83 +50,43 @@ let weekOffset=0
 
 const days=["月","火","水","木","金","土"]
 
-const shiftList=[
-"",
-"〇",
-"9:00〜",
-"10:30〜",
-"11:00〜",
-"16:00〜",
-"16:30〜",
-"17:00〜",
-"18:30〜",
-"19:00〜"
-]
+const shiftList=["","〇","9:00〜","10:30〜","11:00〜","16:00〜","16:30〜","17:00〜","18:30〜","19:00〜"]
 
 function getMonday(d){
-
 d=new Date(d)
-
 const day=d.getDay()
-
 const diff=d.getDate()-day+(day==0?-6:1)
-
 return new Date(d.setDate(diff))
-
 }
 
 function formatDate(d){
-
 return (d.getMonth()+1)+"/"+d.getDate()
-
 }
 
 function getWeekKey(){
-
 let monday=getMonday(new Date())
-
 monday.setDate(monday.getDate()+weekOffset*7)
-
 return monday.toISOString().slice(0,10)
-
 }
 
 function getWeekDates(){
-
 let monday=getMonday(new Date())
-
 monday.setDate(monday.getDate()+weekOffset*7)
-
 let dates=[]
-
 for(let i=0;i<6;i++){
-
 let d=new Date(monday)
-
 d.setDate(monday.getDate()+i)
-
 dates.push(d)
-
 }
-
 return dates
-
 }
 
 function cycleShift(cell){
-
-const list=shiftList
-
 let v=cell.innerText.trim()
-
-let i=list.indexOf(v)
-
-i=(i+1)%list.length
-
-cell.innerText=list[i]
-
+let i=shiftList.indexOf(v)
+i=(i+1)%shiftList.length
+cell.innerText=shiftList[i]
 save()
-
 }
 
 function render(){
@@ -184,17 +94,13 @@ function render(){
 let dates=getWeekDates()
 
 document.getElementById("weekLabel").innerText=
-
 formatDate(dates[0])+" 週"
 
 let html="<table>"
-
 html+="<tr><th class='name'>名前</th>"
 
 dates.forEach((d,i)=>{
-
 html+="<th>"+days[i]+"<br>"+formatDate(d)+"</th>"
-
 })
 
 html+="<th class='delete'>削除</th></tr>"
@@ -206,13 +112,9 @@ html+="<tr>"
 html+="<td contenteditable='true' class='name' oninput='updateName("+i+",this)'>"+s+"</td>"
 
 dates.forEach((d,di)=>{
-
 let key=getWeekKey()+"_"+i+"_"+di
-
 let v=shifts[key]||""
-
 html+="<td contenteditable='true' onclick='cycleShift(this)' oninput='updateShift("+i+","+di+",this)'>"+v+"</td>"
-
 })
 
 html+="<td class='delete'><button class='delete-btn' onclick='deleteStaff("+i+")'>🗑</button></td>"
@@ -224,91 +126,58 @@ html+="</tr>"
 html+="</table>"
 
 document.getElementById("tableArea").innerHTML=html
-
 }
 
 function addStaff(){
-
 staff.push("名前")
-
 save()
-
 render()
-
 }
 
 function deleteStaff(i){
-
 staff.splice(i,1)
-
 save()
-
 render()
-
 }
 
 function updateName(i,el){
-
 staff[i]=el.innerText
-
 save()
-
 }
 
 function updateShift(i,di,el){
-
 let key=getWeekKey()+"_"+i+"_"+di
-
 shifts[key]=el.innerText
-
 save()
-
 }
 
 function prevWeek(){
-
 weekOffset--
-
 load()
-
 }
 
 function nextWeek(){
-
 weekOffset++
-
 load()
-
 }
 
 function printTable(){
-
 window.print()
-
 }
 
 function shareLine(){
-
 html2canvas(document.getElementById("tableArea")).then(canvas=>{
-
 const imgData = canvas.toDataURL("image/png");
-
-// ダウンロード
 const link=document.createElement("a");
 link.href=imgData;
 link.download="shift.png";
 link.click();
-
-// スマホ用プレビュー
 const w = window.open("");
 w.document.write("<img src='"+imgData+"' style='width:100%'>");
-
 });
-
 }
 
 function save(){
-
 fetch(API_URL,{
 method:"POST",
 headers:{
@@ -320,21 +189,16 @@ shifts:shifts
 }),
 mode:"no-cors"
 })
-
 }
 
 async function load(){
-
+try{
 const res=await fetch(API_URL)
-
 const data=await res.json()
-
 if(data.staff) staff=data.staff
-
 if(data.shifts) shifts=data.shifts
-
+}catch(e){}
 render()
-
 }
 
 load()
