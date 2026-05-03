@@ -143,25 +143,33 @@ load()
 
 function save(){
 
-fetch(API_URL,{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({staff,shifts}),
-mode:"no-cors"
-})
+const key="shift_"+getWeekKey()
 
-alert("保存しました")
+const data={
+staff:staff,
+shifts:shifts
+}
+
+localStorage.setItem(key, JSON.stringify(data))
+
+alert("保存OK")
 
 }
 
-async function load(){
-try{
-let r=await fetch(API_URL)
-let j=await r.json()
-staff=j.staff||[]
-shifts=j.shifts||{}
-}catch(e){}
+function load(){
+
+const key="shift_"+getWeekKey()
+
+const data=localStorage.getItem(key)
+
+if(data){
+const json=JSON.parse(data)
+staff=json.staff||[]
+shifts=json.shifts||{}
+}
+
 render()
+
 }
 
 function makeImage(){
