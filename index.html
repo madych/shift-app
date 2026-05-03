@@ -75,6 +75,12 @@ m.setDate(m.getDate()+weekOffset*7)
 return m.toISOString().slice(0,10)
 }
 
+function getWeekKey(){
+let m=monday(new Date())
+m.setDate(m.getDate()+weekOffset*7)
+return m.toISOString().slice(0,10)
+}
+
 function render(){
 
 let d=dates()
