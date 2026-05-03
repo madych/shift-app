@@ -305,11 +305,16 @@ link.click()
 
 function save(){
 
-const data={staff,shifts}
-
 fetch(API_URL,{
 method:"POST",
-body:JSON.stringify(data)
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+staff:staff,
+shifts:shifts
+}),
+mode:"no-cors"
 })
 
 }
