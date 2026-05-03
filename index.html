@@ -69,12 +69,6 @@ arr.push(d)
 return arr
 }
 
-function key(){
-let m=monday(new Date())
-m.setDate(m.getDate()+weekOffset*7)
-return m.toISOString().slice(0,10)
-}
-
 function getWeekKey(){
 let m=monday(new Date())
 m.setDate(m.getDate()+weekOffset*7)
@@ -103,7 +97,7 @@ html+="<tr>"
 html+="<td contenteditable oninput='nameEdit("+i+",this)'>"+s+"</td>"
 
 d.forEach((x,di)=>{
-let k=key()+"_"+i+"_"+di
+let k=getWeekKey()+"_"+i+"_"+di
 let v=shifts[k]||""
 html+="<td contenteditable onclick='tap(this)' oninput='edit("+i+","+di+",this)'>"+v+"</td>"
 })
